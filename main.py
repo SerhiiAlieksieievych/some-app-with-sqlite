@@ -32,7 +32,7 @@ class User():
         self.reset_repeated_password()
         self.reset_email()
 
-    def check_has_duplication_username(self, db_path:str, username:str)->bool:
+    def check_for_existense_username(self, db_path:str, username:str)->bool:
         with sqlite3.connect(db_path) as db:
             c = db.cursor()
             c.execute("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)", (username,))
@@ -133,13 +133,13 @@ class App():
         btns_frame = tk.Frame(self.win)
         label = tk.Label(frame, text='Username:', bd=10)
         label.grid(row=0, column=0)
-        username_field = tk.Entry(frame,textvariable=self.user.username, bg='white', highlightthickness=10)
+        username_field = tk.Entry(frame,textvariable=self.user.username, bg='white', highlightthickness=1)
         username_field.insert(0, "")
         username_field.grid(row=0, column=1)
 
         label = tk.Label(frame, text='Password:', bd=10)
         label.grid(row=1, column=0)
-        password_field = tk.Entry(frame, textvariable=self.user.password, bg='white', highlightthickness=10, show="*")
+        password_field = tk.Entry(frame, textvariable=self.user.password, bg='white', highlightthickness=1, show="*")
         password_field.insert(0, "")
         password_field.grid(row=1, column=1)
 
@@ -161,25 +161,25 @@ class App():
 
         label = tk.Label(frame, text='Username:', bd=10)
         label.grid(row=0, column=0)
-        username_field = tk.Entry(frame, textvariable=self.user.username, bg='white', highlightthickness=10)
+        username_field = tk.Entry(frame, textvariable=self.user.username, bg='white', highlightthickness=1)
         username_field.insert(0, "")
         username_field.grid(row=0, column=1)
 
         label = tk.Label(frame, text='Email:', bd=10)
         label.grid(row=1, column=0)
-        email_field = tk.Entry(frame, textvariable=self.user.email, bg='white', highlightthickness=10)
+        email_field = tk.Entry(frame, textvariable=self.user.email, bg='white', highlightthickness=1)
         email_field.insert(0, "")
         email_field.grid(row=1, column=1)
 
         label = tk.Label(frame, text='Password:', bd=10)
         label.grid(row=2, column=0)
-        password_field = tk.Entry(frame, textvariable=self.user.password, bg='white', highlightthickness=10, show="*")
+        password_field = tk.Entry(frame, textvariable=self.user.password, bg='white', highlightthickness=1, show="*")
         password_field.insert(0, "")
         password_field.grid(row=2, column=1)
 
         label = tk.Label(frame, text='Repeat password:', bd=10)
         label.grid(row=3, column=0)
-        password_field = tk.Entry(frame, textvariable=self.user.repeated_password, bg='white', highlightthickness=10, show="*")
+        password_field = tk.Entry(frame, textvariable=self.user.repeated_password, bg='white', highlightthickness=1, show="*")
         password_field.insert(0, "")
         password_field.grid(row=3, column=1)
 
@@ -197,19 +197,19 @@ class App():
             self._clear_window()
             self._show_warning_message("Ім'я має містити лише латинські літери, цифри та знак підкреслення, та має бути довжиною від 3 до 20 символів.", self.open_sign_in_win)
             self.user.reset_username()
-        elif not self.validate_password():
+        elif not self.user.check_for_existense_username(self.db_path,self.user.username.get()):
             self._clear_window()
             self._show_warning_message(
-                "Пароль має бути довжиною від 8 до 20 символів, містити хоча б одну латинську літеру та одну цифру.",
+                "Користувач з таким логіном не зареєстрований.",
                 self.open_sign_in_win)
-            self.user.reset_password()
+            self.user.reset_all()
         elif self.user.login(self.user.username.get(), self.user.password.get()):
             self._clear_window()
             self._show_success_message("Вітаємо! Ви успішно залогінились!")
         else:
             self._clear_window()
-            self._show_warning_message("Невірний логін, або пароль!", self.open_sign_in_win)
-            self.user.reset_all()
+            self._show_warning_message("Невірний пароль!", self.open_sign_in_win)
+            self.user.reset_password()
 
     def sign_on(self):
         if not self.validate_username():
@@ -230,6 +230,7 @@ class App():
                 "Пароль має бути довжиною від 8 до 20 символів, містити хоча б одну латинську літеру та одну цифру.",
                 self.open_sign_on_win)
             self.user.reset_password()
+            self.user.reset_repeated_password()
         elif self.user.password.get() != self.user.repeated_password.get():
             self._clear_window()
             self._show_warning_message(
@@ -237,7 +238,7 @@ class App():
                 self.open_sign_on_win)
             self.user.reset_password()
             self.user.reset_repeated_password()
-        elif self.user.check_has_duplication_username(self.db_path,self.user.username.get()):
+        elif self.user.check_for_existense_username(self.db_path,self.user.username.get()):
             self._clear_window()
             self._show_warning_message("Користувач з таким ім'ям вже зареєстрований!", self.open_sign_on_win)
             self.user.reset_username()
