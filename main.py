@@ -11,7 +11,26 @@ class User():
     def __init__(self):
         self.username = tk.StringVar()
         self.password = tk.StringVar()
+        self.repeated_password = tk.StringVar()
         self.email = tk.StringVar()
+
+    def reset_username(self):
+        self.username.set("")
+
+    def reset_password(self):
+        self.password.set("")
+
+    def reset_repeated_password(self):
+        self.repeated_password.set("")
+
+    def reset_email(self):
+        self.email.set("")
+
+    def reset_all(self):
+        self.reset_username()
+        self.reset_password()
+        self.reset_repeated_password()
+        self.reset_email()
 
     def check_has_duplication_username(self, db_path:str, username:str)->bool:
         with sqlite3.connect(db_path) as db:
@@ -38,6 +57,7 @@ class User():
             c = db.cursor()
             c.execute("SELECT EXISTS(SELECT 1 FROM users WHERE username = ? AND password = ?)", (username, password))
             return c.fetchone()[0]
+
 class App():
     def __init__(self, db_path):
         self.win = tk.Tk()
@@ -69,6 +89,11 @@ class App():
         self.win.resizable(height=False, width=False)
         self.open_start_win()
         self.win.mainloop()
+
+    def _go_back(self):
+        self.user.reset_all()
+        self.open_start_win()
+
     def _clear_window(self):
         for widget in self.win.winfo_children():
             widget.destroy()
@@ -121,7 +146,7 @@ class App():
         frame.pack(pady=10)
         btns_frame.pack(pady=10)
 
-        back_btn = tk.Button(btns_frame, text="Назад", command=self.open_start_win)
+        back_btn = tk.Button(btns_frame, text="Назад", command=self._go_back)
         btn = tk.Button(btns_frame, text="Увійти", command=self.sign_in)
         btn.grid(row=0, column=0, padx=10)
         back_btn.grid(row=0, column=1, padx=10)
@@ -152,10 +177,16 @@ class App():
         password_field.insert(0, "")
         password_field.grid(row=2, column=1)
 
+        label = tk.Label(frame, text='Repeat password:', bd=10)
+        label.grid(row=3, column=0)
+        password_field = tk.Entry(frame, textvariable=self.user.repeated_password, bg='white', highlightthickness=10, show="*")
+        password_field.insert(0, "")
+        password_field.grid(row=3, column=1)
+
         frame.pack(pady=10)
         btns_frame.pack(pady=10)
 
-        back_btn = tk.Button(btns_frame, text="Назад", command=self.open_start_win)
+        back_btn = tk.Button(btns_frame, text="Назад", command=self._go_back)
         btn = tk.Button(btns_frame, text="Зареєструватися", command=self.sign_on)
         btn.grid(row=0,column=0, padx=10)
         back_btn.grid(row=0,column=1, padx=10)
@@ -165,17 +196,20 @@ class App():
         if not self.validate_username():
             self._clear_window()
             self._show_warning_message("Ім'я має містити лише латинські літери, цифри та знак підкреслення, та має бути довжиною від 3 до 20 символів.", self.open_sign_in_win)
+            self.user.reset_username()
         elif not self.validate_password():
             self._clear_window()
             self._show_warning_message(
                 "Пароль має бути довжиною від 8 до 20 символів, містити хоча б одну латинську літеру та одну цифру.",
                 self.open_sign_in_win)
+            self.user.reset_password()
         elif self.user.login(self.user.username.get(), self.user.password.get()):
             self._clear_window()
             self._show_success_message("Вітаємо! Ви успішно залогінились!")
         else:
             self._clear_window()
             self._show_warning_message("Невірний логін, або пароль!", self.open_sign_in_win)
+            self.user.reset_all()
 
     def sign_on(self):
         if not self.validate_username():
@@ -183,22 +217,34 @@ class App():
             self._show_warning_message(
                 "Ім'я має містити лише латинські літери, цифри та знак підкреслення, та має бути довжиною від 3 до 20 символів.",
                 self.open_sign_on_win)
+            self.user.reset_username()
         elif not self.validate_email():
             self._clear_window()
             self._show_warning_message(
                 "Введіть коректну пошту.",
                 self.open_sign_on_win)
+            self.user.reset_email()
         elif not self.validate_password():
             self._clear_window()
             self._show_warning_message(
                 "Пароль має бути довжиною від 8 до 20 символів, містити хоча б одну латинську літеру та одну цифру.",
                 self.open_sign_on_win)
+            self.user.reset_password()
+        elif self.user.password.get() != self.user.repeated_password.get():
+            self._clear_window()
+            self._show_warning_message(
+                "Пароль має збігатися в обох полях.",
+                self.open_sign_on_win)
+            self.user.reset_password()
+            self.user.reset_repeated_password()
         elif self.user.check_has_duplication_username(self.db_path,self.user.username.get()):
             self._clear_window()
             self._show_warning_message("Користувач з таким ім'ям вже зареєстрований!", self.open_sign_on_win)
+            self.user.reset_username()
         elif self.user.check_has_duplication_email(self.db_path,self.user.email.get()):
             self._clear_window()
             self._show_warning_message("Користувач з такою поштою вже зареєстрований!", self.open_sign_on_win)
+            self.user.reset_email()
         else:
             self.user.register()
             self._clear_window()
